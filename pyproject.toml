@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-connector-sdk"
+version = "1.1.0"
+description = "Canonical runtime-neutral Atlas Integration Protocol and Connector Manifest contracts"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+dependencies = []
+
+[project.optional-dependencies]
+validation = ["jsonschema[format-nongpl]==4.25.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+atlas_connector_sdk = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

@@ -1,0 +1,7 @@
+Atlas Connector SDK
+Copyright 2026 Atlas Impact contributors
+
+The AIP 1.0 and Manifest 1.0 schema bytes were extracted verbatim from the
+accepted I0 contracts under the operator-authorized three-project ownership
+boundary. Existing AGPL Atlas/plugin implementation was not transferred.
+Manifest 1.1 adds the explicitly approved probe-only capability representation.
