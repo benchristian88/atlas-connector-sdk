@@ -1,0 +1,956 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "protocol_version": {
+      "const": "1.0"
+    },
+    "message_type": {
+      "enum": [
+        "observations",
+        "completion"
+      ]
+    },
+    "connector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+        },
+        "bundle_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "bundle_digest"
+      ]
+    },
+    "integration_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "version"
+      ]
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "sequence"
+      ]
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    },
+    "networks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/network"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/interface"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      },
+      "minItems": 0,
+      "maxItems": 64
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "completeness": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed",
+        "unknown"
+      ]
+    },
+    "last_sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      },
+      "minItems": 0,
+      "maxItems": 64
+    }
+  },
+  "required": [
+    "protocol_version",
+    "message_type",
+    "connector",
+    "integration_id",
+    "run_id",
+    "observed_at",
+    "coverage"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:atlas-connector-sdk:aip:1.0",
+  "title": "AIP v1 \u2014 I0 staging specification",
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_.-]*$"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean"
+          ]
+        },
+        "class": {
+          "enum": [
+            "identity",
+            "configuration",
+            "operational",
+            "informational"
+          ]
+        },
+        "cardinality": {
+          "enum": [
+            "single",
+            "multi"
+          ]
+        },
+        "value": {}
+      },
+      "required": [
+        "key",
+        "value_type",
+        "class",
+        "cardinality",
+        "value"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "string"
+              },
+              "cardinality": {
+                "const": "single"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "string"
+              },
+              "cardinality": {
+                "const": "multi"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "integer"
+              },
+              "cardinality": {
+                "const": "single"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "integer"
+              },
+              "cardinality": {
+                "const": "multi"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "number"
+              },
+              "cardinality": {
+                "const": "single"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "number"
+              },
+              "cardinality": {
+                "const": "multi"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "boolean"
+              },
+              "cardinality": {
+                "const": "single"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "boolean"
+              },
+              "cardinality": {
+                "const": "multi"
+              }
+            },
+            "required": [
+              "value_type",
+              "cardinality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "snapshot_mode": {
+          "enum": [
+            "full",
+            "partial"
+          ]
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "assets",
+              "networks",
+              "interfaces",
+              "relationships"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "key",
+        "snapshot_mode",
+        "domains"
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "object_class": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_.-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "status": {
+          "enum": [
+            "active",
+            "inactive",
+            "missing",
+            "retired",
+            "unknown"
+          ]
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "correlation_hints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hint"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "external_id",
+        "object_class",
+        "name",
+        "facts"
+      ]
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "object_class": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_.-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "network_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "vlan_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4094
+        },
+        "cidr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 49
+        },
+        "gateway": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 45
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "external_id",
+        "object_class",
+        "name",
+        "network_type",
+        "facts"
+      ]
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "object_class": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_.-]*$"
+        },
+        "asset_external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "network_external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "ip_address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 45
+        },
+        "mac_address": {
+          "type": "string",
+          "pattern": "^(?:[a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
+        },
+        "is_primary": {
+          "type": "boolean"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "external_id",
+        "object_class",
+        "asset_external_id",
+        "name",
+        "is_primary",
+        "facts"
+      ]
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "asset"
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "kind",
+        "external_id"
+      ]
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "relationship_class": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_.-]*$"
+        },
+        "source": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "target": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "truth_classification": {
+          "enum": [
+            "observed",
+            "inferred"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "external_id",
+        "relationship_class",
+        "source",
+        "target",
+        "truth_classification",
+        "confidence"
+      ]
+    },
+    "hint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "hostname",
+            "mac_address",
+            "management_ip"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "authority": {
+          "const": "evidence_only"
+        }
+      },
+      "required": [
+        "kind",
+        "value",
+        "authority"
+      ]
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "permission_limited",
+            "source_unavailable",
+            "authentication_failed",
+            "tls_trust_required",
+            "source_version_untested",
+            "source_incompatible",
+            "invalid_source_record",
+            "timeout"
+          ]
+        },
+        "domain": {
+          "enum": [
+            "assets",
+            "networks",
+            "interfaces",
+            "relationships"
+          ]
+        }
+      },
+      "required": [
+        "code"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "message_type": {
+            "const": "observations"
+          }
+        },
+        "required": [
+          "message_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "batch",
+          "assets",
+          "networks",
+          "interfaces",
+          "relationships"
+        ],
+        "allOf": [
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "status"
+                  ]
+                },
+                {
+                  "required": [
+                    "completeness"
+                  ]
+                },
+                {
+                  "required": [
+                    "last_sequence"
+                  ]
+                },
+                {
+                  "required": [
+                    "errors"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "message_type": {
+            "const": "completion"
+          }
+        },
+        "required": [
+          "message_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "status",
+          "completeness",
+          "last_sequence"
+        ],
+        "allOf": [
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "batch"
+                  ]
+                },
+                {
+                  "required": [
+                    "assets"
+                  ]
+                },
+                {
+                  "required": [
+                    "networks"
+                  ]
+                },
+                {
+                  "required": [
+                    "interfaces"
+                  ]
+                },
+                {
+                  "required": [
+                    "relationships"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "completeness": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "completeness"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          },
+          "coverage": {
+            "properties": {
+              "snapshot_mode": {
+                "const": "full"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completeness": {
+            "enum": [
+              "complete",
+              "partial"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "errors"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completeness": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "errors"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "minItems": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "cancelled"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completeness": {
+            "const": "unknown"
+          }
+        }
+      }
+    }
+  ]
+}
